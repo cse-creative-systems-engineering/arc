@@ -92,7 +92,7 @@ The documentation for Arc follows rigorous engineering contracts and traceable s
 | [`docs/architecture.md`](docs/architecture.md) | The master architectural essay, system planes, and visual contracts |
 | [`docs/requirements.md`](docs/requirements.md) | Traceable requirements (`REQ-BOOT`, `REQ-UX`, `REQ-SCENE`, `REQ-AGENT`, `REQ-AUDIO`, `REQ-SAF`) |
 | [`docs/glossary.md`](docs/glossary.md) | Standard terminology and conceptual definitions |
-| [`docs/decisions/`](docs/decisions/) | Numbered Architecture Decision Records (ADR-0001 through ADR-0008) |
+| [`docs/decisions/`](docs/decisions/) | Numbered Architecture Decision Records (ADR-0001 through ADR-0009) |
 | [`docs/milestones/`](docs/milestones/) | Phased implementation milestones, acceptance criteria, and test ledgers |
 
 ---

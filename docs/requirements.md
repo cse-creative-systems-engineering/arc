@@ -98,6 +98,26 @@ The compositor shall provide direct GPU VRAM access to local vision models using
 The compositor framebuffer, swapchain, and client surface textures shall maintain Tier-0 hardware allocation priority in VRAM. When VRAM utilization exceeds 85%, Arc's resource manager shall gracefully evict or offload local vision model tensors to host system RAM (CPU GGUF) or remote gateways, strictly preventing GPU driver resets (TDR) or session-terminating OOM kills.  
 *Source: ADR-0007*
 
+### REQ-AGENT-006: Scoped Browser Session Bridging & Ephemeral Workspaces
+Autonomous web tasks shall execute in a dedicated Managed Arc Browser Profile with credentials scoped via the TPM2 vault, preventing filesystem lock conflicts with the user's primary browser profile and preventing cross-domain session cookie leakage. When encountering unpassable 2FA/CAPTCHA challenges, Arc shall execute an interactive authentication handover, spotlighting the window and waiting for user completion.  
+*Source: ADR-0009*
+
+### REQ-AGENT-007: CDP Automation Stealth & Fingerprint Masking
+All automated browser instances shall strip automation flags (`--enable-automation`), sanitize runtime navigator properties (`navigator.webdriver = undefined`), and match native user TLS client hello fingerprints to prevent bot-detection barriers from obstructing valid user intents.  
+*Source: ADR-0009*
+
+### REQ-AGENT-008: Instant Hardware Input Preemption (< 1ms)
+Physical user input from keyboard or pointer devices shall instantaneously override and suspend virtual autonomous input. If physical pointer movement exceeds 5 pixels or any physical key is pressed, the compositor shall suspend the ghost pointer in less than 1 millisecond without input jitter or race conditions.  
+*Source: ADR-0004*
+
+### REQ-AGENT-009: Autonomous Execution Budget & Idempotency Circuit Breaker
+Autonomous task execution loops shall enforce a maximum budget of 15 atomic steps per plan without human checkpoint re-authorization. If an identical action fails twice consecutively, the system shall trip an idempotency circuit breaker, freeze execution, and request human guidance.  
+*Source: Architecture §2.2, §5*
+
+### REQ-AGENT-010: Offline Cognitive Degradation & Local-First Fallback
+In the event of network partition or cloud provider unavailability, Arc shall gracefully downgrade Tier-1 planning to an on-disk local quantized model (3B–8B), maintaining operational capability for local system administration, scripting, and desktop navigation without blocking the user interface.  
+*Source: Architecture §2.2*
+
 ---
 
 ## 5. Ambient Voice Duplex (`REQ-AUDIO`)

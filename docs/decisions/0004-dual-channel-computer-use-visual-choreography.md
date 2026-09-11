@@ -34,12 +34,19 @@ Conversely, headless API scraping (running background cURL/Playwright scripts) p
    - The compositor verifies peer credentials (`SO_PEERCRED` on Linux Unix domain sockets) on client connection. Only internal Arc supervisor threads or verified system worker processes are permitted to bind to virtual input interfaces.
    - Any unauthenticated third-party Wayland client attempting to bind to virtual pointer or virtual keyboard protocols is immediately terminated with a protocol error (`WL_DISPLAY_ERROR_INVALID_OBJECT`).
 
+4. **Physical Input Preemption Invariant (Instant Hardware Veto)**:
+   - To eliminate input race conditions between human and AI, physical hardware events take absolute, instantaneous priority over virtual input.
+   - The moment `libinput` reports physical pointer movement exceeding a 5-pixel threshold or any physical key actuation:
+     - The compositor executes an **Instant Ghost Pause** in $< 1\text{ms}$.
+     - The virtual pointer stream is suspended, the ghost cursor dissolves into a soft pulsing halo, and all physical seat focus yields unconditionally to the human.
+     - The autonomous task pauses execution cleanly without dropping state until the human resumes or cancels the action.
+
 ## Consequences
 
 **Positive:**
 - Eliminates misclicks completely: actions are grounded in deterministic DOM/AT-SPI tree state.
 - Preserves full human transparency: the user watches Arc navigate and fill forms without guessing what the machine is doing.
-- Enables graceful interruption: the human can move their physical mouse or press `Escape` at any moment to pause the ghost cursor and take control.
+- Eliminates pointer jitter and fight-for-control races through deterministic physical input preemption (< 1ms).
 - Closes the arbitrary input-injection vulnerability: third-party client apps cannot hijack the user's mouse or keyboard through Wayland.
 
 **Negative:**
@@ -48,5 +55,5 @@ Conversely, headless API scraping (running background cURL/Playwright scripts) p
 
 ## Related
 - `architecture.md` §6, §6.1
-- `requirements.md` REQ-AGENT-001, REQ-AGENT-002
+- `requirements.md` REQ-AGENT-001, REQ-AGENT-002, REQ-AGENT-008
 - `glossary.md` (Dual-Channel Control, Ghost Pointer)
