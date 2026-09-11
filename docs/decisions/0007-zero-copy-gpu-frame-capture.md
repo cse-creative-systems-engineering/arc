@@ -33,6 +33,11 @@ Because Arc is the display server, it already allocates and renders all screen c
 4. **Damage-Driven Awakening**:
    - Visual inspection is triggered exclusively by Wayland damage events (`wl_surface.damage`). When the screen is static, the visual sensory pipeline consumes 0% GPU compute.
 
+5. **VRAM Priority & OOM Crash Prevention**:
+   - The compositor hardware framebuffer, swapchain, and client surface buffers maintain **Tier-0 hardware priority** in VRAM.
+   - When overall VRAM utilization exceeds 85%, Arc's resource manager halts local vision tensor allocations and automatically falls back to offloading the vision weights to unified system RAM (via CPU GGUF inference) or remote gateway endpoints.
+   - Under no circumstances may an inference model allocation trigger a GPU out-of-memory error, kernel panic, or display driver reset (TDR).
+
 ## Consequences
 
 **Positive:**
@@ -40,6 +45,7 @@ Because Arc is the display server, it already allocates and renders all screen c
 - Eliminates CPU memory thrashing and PCIe bus saturation.
 - Delivers clean, unoccluded per-window textures directly to reasoning models.
 - Damage-driven triggers ensure zero idle GPU power consumption.
+- Prevents desktop crashes and display resets under heavy VRAM workloads via deterministic memory tiers.
 
 **Negative:**
 - Requires GPU driver support for DMA-BUF sharing and Vulkan/CUDA external memory extensions (standard on modern Linux with Mesa/NVIDIA 550+).

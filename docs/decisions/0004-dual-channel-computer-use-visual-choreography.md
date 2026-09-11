@@ -29,12 +29,18 @@ Conversely, headless API scraping (running background cURL/Playwright scripts) p
    - The targeted element illuminates, the click activates with visible spring feedback, and text fills with natural typing rhythm.
    - The user observes the entire workflow at human-comprehensible speed.
 
+3. **Privileged Protocol Gating (Security Invariant)**:
+   - Protocols that simulate input (`zwp_virtual_pointer_v1` and `zwp_virtual_keyboard_v1`) are strictly classified as privileged.
+   - The compositor verifies peer credentials (`SO_PEERCRED` on Linux Unix domain sockets) on client connection. Only internal Arc supervisor threads or verified system worker processes are permitted to bind to virtual input interfaces.
+   - Any unauthenticated third-party Wayland client attempting to bind to virtual pointer or virtual keyboard protocols is immediately terminated with a protocol error (`WL_DISPLAY_ERROR_INVALID_OBJECT`).
+
 ## Consequences
 
 **Positive:**
 - Eliminates misclicks completely: actions are grounded in deterministic DOM/AT-SPI tree state.
 - Preserves full human transparency: the user watches Arc navigate and fill forms without guessing what the machine is doing.
 - Enables graceful interruption: the human can move their physical mouse or press `Escape` at any moment to pause the ghost cursor and take control.
+- Closes the arbitrary input-injection vulnerability: third-party client apps cannot hijack the user's mouse or keyboard through Wayland.
 
 **Negative:**
 - Requires maintaining CDP and AT-SPI connection drivers for target applications.
