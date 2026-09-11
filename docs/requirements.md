@@ -1,0 +1,135 @@
+# Arc Traceable Requirements
+
+**Status:** Draft Specification  
+**Depends on:** `architecture.md`, `glossary.md`  
+
+This document formalizes the functional, technical, safety, and experiential requirements for Arc. Every requirement has a unique, traceable identifier formatted as `REQ-<CATEGORY>-<NUMBER>`.
+
+---
+
+## Category Codes
+
+| Code | Category |
+|---|---|
+| `BOOT` | Cold boot, DRM/KMS framebuffer, startup latency |
+| `UX` | Zero-input canvas, kinetic typography, 2.5D amphitheater stage |
+| `SCENE` | Generative domain scenes and semantic data representation |
+| `AGENT` | Autonomous engineering, dual-channel agency, ghost choreography |
+| `AUDIO` | PipeWire integration, full-duplex voice, media ducking |
+| `SAF` | Policy broker, guardian invariants, staged execution, credential security |
+
+---
+
+## 1. Boot and Framebuffer (`REQ-BOOT`)
+
+### REQ-BOOT-001: Sub-2-Second Direct DRM Boot
+The system shall boot from UEFI POST directly into the Arc Wayland compositor via DRM/KMS without an intermediate display manager (GDM/LightDM) in less than 1.5 seconds on baseline NVMe hardware.  
+*Source: Architecture §3.1*
+
+### REQ-BOOT-002: Procedural Watermark Shader
+Upon display initialization, the compositor shall execute a procedural WGPU fragment shader that fades in the typographic wordmark "ARC" across the display and smoothly decays to a persistent ambient watermark with an alpha opacity not exceeding 5%.  
+*Source: Architecture §3.1*
+
+### REQ-BOOT-003: Pure Obsidian Background
+The default compositor background color shall be pure OLED black (`#000000`) with zero static desktop UI elements, icons, docks, or status bars.  
+*Source: Architecture §3.1*
+
+---
+
+## 2. User Experience and Kinetic Canvas (`REQ-UX`)
+
+### REQ-UX-001: Zero-Input Global Keystroke Capture
+When no application window holds active modal focus, raw keyboard input from `libinput` shall be routed directly to the compositor's global intent buffer. The UI shall not require the user to focus or click inside a text-input widget.  
+*Source: Architecture §3.2*
+
+### REQ-UX-002: Real-Time Kinetic Typography
+All text streamed from the intent engine or typed by the user shall be rendered directly as GPU vector glyphs using biological typewriter cadence and spring physics on character deletion.  
+*Source: Architecture §3.1, §3.2*
+
+### REQ-UX-003: Dual-Typeface Aesthetic Hierarchy
+The compositor typography engine shall enforce a strict dual-typeface hierarchy: an elegant literary/editorial display face for human narrative and intent prompts, and an ultra-precise monospaced font for technical output, code diffs, and execution telemetry.  
+*Source: Architecture §3.1*
+
+### REQ-UX-004: 2.5D Amphitheater Perspective Stage
+Application windows shall be rendered on a curved 3D perspective plane with GPU-accelerated depth-of-field blur. The active focus window shall remain in sharp focus while inactive windows are softly blurred and angled in the periphery.  
+*Source: Architecture §3.3*
+
+---
+
+## 3. Generative Domain Scenes (`REQ-SCENE`)
+
+### REQ-SCENE-001: Abolition of Raw File Trees
+Filesystem queries and directory inspections shall not be presented to the user as plain text lists or generic icon grids. The compositor shall instantiate a domain-specific visual scene corresponding to the semantic classification of the directory contents.  
+*Source: Architecture §4*
+
+### REQ-SCENE-002: Acoustic Listening Room Scene
+When inspecting directories classified as audio/music, Arc shall instantiate an acoustic listening room scene displaying high-resolution album artwork, an active PipeWire spectrum analyzer, and integrated single-keystroke playback controls.  
+*Source: Architecture §4*
+
+### REQ-SCENE-003: Codebase Landscape Scene
+When inspecting software projects, Arc shall render an interactive dependency and architectural scene indicating module health, git status, and test execution status.  
+*Source: Architecture §4*
+
+---
+
+## 4. Autonomous Agency and Choreography (`REQ-AGENT`)
+
+### REQ-AGENT-001: Dual-Channel Control Architecture
+All autonomous web and application interactions shall be executed through deterministic control channels (CDP, AT-SPI) while simultaneously choreographing visible pointer and keyboard movements on the screen. Coordinate-guessing screenshot models shall not be used for critical path actions.  
+*Source: Architecture §6*
+
+### REQ-AGENT-002: Visible Ghost Pointer Choreography
+Autonomous interactions on client windows shall be visualized via a luminous ghost cursor that moves with natural cubic-bezier physics, illuminates targeted UI elements, and simulates keystrokes at human-comprehensible speeds.  
+*Source: Architecture §6.1*
+
+### REQ-AGENT-003: Autonomous Systems Engineering Pipeline
+When tasked with complex engineering goals (e.g., machine learning environment setup), Arc shall autonomously discover hardware capabilities, scaffold sandboxed environments, pull model weights with integrity checks, and execute synthetic verification passes prior to declaring readiness.  
+*Source: Architecture §5*
+
+### REQ-AGENT-004: Zero-Copy GPU Frame Ingestion
+The compositor shall provide direct GPU VRAM access to local vision models using Wayland DMA-BUF handles and Vulkan/CUDA external memory interop, achieving frame ingestion latency of less than 1 millisecond without PCIe bus transfers or CPU readbacks.  
+*Source: Architecture §2.1, ADR-0007*
+
+---
+
+## 5. Ambient Voice Duplex (`REQ-AUDIO`)
+
+### REQ-AUDIO-001: Native PipeWire Audio Node
+Arc shall connect directly as an active streaming node in the Linux PipeWire pro-audio graph, bypassing legacy audio daemon emulation layers.  
+*Source: Architecture §7*
+
+### REQ-AUDIO-002: Automatic Acoustic Media Ducking
+When the sensory plane detects human speech onset via Voice Activity Detection, Arc shall attenuate all active audio output streams by 70% with smooth volume easing, restoring full volume when the speech transaction concludes.  
+*Source: Architecture §7*
+
+### REQ-AUDIO-003: Sub-200ms Conversational Latency
+The complete voice roundtrip—from user speech termination, through streaming local transcription, reflex intent classification, and streaming neural text-to-speech synthesis—shall not exceed 200ms for conversational acknowledgments.  
+*Source: Architecture §7*
+
+### REQ-AUDIO-004: Peer-Level Conversational Persona
+The acoustic voice output shall maintain a calm, competent, collaborative persona, addressing the user personally and maintaining cross-modal continuity between spoken words and on-screen typography.  
+*Source: Architecture §7*
+
+### REQ-AUDIO-005: Hardware Acoustic Echo Cancellation & Barge-In
+The audio sensory node shall integrate WebRTC Acoustic Echo Cancellation (AEC) using Arc's master speaker output as a reference signal, digitally canceling system speech and media from the microphone feed to enable natural voice interruption ("barge-in") with < 3ms input buffer latency.  
+*Source: Architecture §7, ADR-0008*
+
+---
+
+## 6. Safety and Deterministic Enforcement (`REQ-SAF`)
+
+### REQ-SAF-001: Strict Separation of Decision and Execution
+No language model or probabilistic agent shall possess direct, unmediated operating system authority. All mutations must be formulated as structured proposals submitted to the Policy Broker.  
+*Source: Architecture §2.3*
+
+### REQ-SAF-002: Two-Dimensional Authorization
+The Policy Broker shall evaluate every action proposal against a two-dimensional matrix of explicit capability (resource $\times$ operation) and clearance risk level. Missing or ambiguous capabilities shall fail closed.  
+*Source: Architecture §2.3*
+
+### REQ-SAF-003: Staged Transaction and Rollback
+All file, package, network, or driver mutations must be executed within the Staged Transaction Executor, supporting automatic health check verification and deterministic rollback upon failure.  
+*Source: Architecture §2.3*
+
+### REQ-SAF-004: Hardware-Backed Credential Vault
+Authentication tokens, SSH keys, and persistent browser session cookies shall be stored in an encrypted local vault backed by the platform TPM2, and shall never be passed into external model context windows.  
+*Source: Architecture §2.3*
