@@ -69,7 +69,7 @@ GPU-accelerated vector text rendering that streams characters with biological ty
 A native client connection within Linux's PipeWire pro-audio graph, enabling low-latency, bi-directional audio capture and playback with direct access to audio stream mixer nodes.
 
 ### Policy Broker
-The deterministic authorization gatekeeper inherited from Aios that evaluates every proposed action against a strict capability $\times$ clearance matrix before execution.
+Arc's deterministic authorization gatekeeper that evaluates every proposed action against a strict capability $\times$ clearance matrix before execution.
 
 ---
 

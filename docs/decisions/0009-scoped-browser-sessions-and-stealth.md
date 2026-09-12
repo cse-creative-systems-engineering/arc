@@ -45,4 +45,4 @@ Autonomous web navigation in Arc (such as checking email, monitoring job boards,
 - `architecture.md` §2.3, §6
 - `requirements.md` REQ-AGENT-006, REQ-AGENT-007
 - `decisions/0004-dual-channel-computer-use-visual-choreography.md`
-- `decisions/0006-retaining-aios-deterministic-enforcement-plane.md`
+- `decisions/0006-deterministic-enforcement-plane.md`

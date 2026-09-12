@@ -5,7 +5,7 @@
 
 ## Context
 
-Previous explorations in AI operating systems (such as Aios v0.1) relied on a desktop application model: running a Tauri or Electron app hosting a webview over an existing X11 or Wayland window manager (GNOME, KDE, Sway). 
+Prior attempts at AI operating environments relied on a desktop application model: running a Tauri or Electron app hosting a webview over an existing X11 or Wayland window manager (GNOME, KDE, Sway). 
 
 This approach creates fundamental architectural friction:
 1. **The Tenant Problem**: The AI is merely an application window competing with other windows. It is constrained by external window managers, surface layer-shell protocols, focus stealing guards, and dock fallbacks.

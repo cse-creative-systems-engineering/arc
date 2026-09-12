@@ -79,7 +79,7 @@ flowchart TD
 
 - **Sensory Plane**: Real-time perception through PipeWire, `libinput`, AT-SPI, and eBPF kernel monitors.
 - **Intent Plane**: Fast local reflex models (for streaming UI and keyboard parsing) paired with deep cognitive planners.
-- **Enforcement Plane**: Inherited from Aios's battle-tested security core—the Policy Broker, Infrastructure Guardian, and Staged Transaction Executor ensure no model possesses unchecked authority.
+- **Enforcement Plane**: Arc's deterministic security core—the Policy Broker, Infrastructure Guardian, and Staged Transaction Executor ensure no model possesses unchecked authority.
 - **Display Plane**: A custom Rust Wayland compositor (`smithay` + `wgpu`) rendering the spatial surface continuum, kinetic typography, and generative domain scenes at native display refresh rates.
 
 ---
@@ -94,7 +94,7 @@ The documentation for Arc follows rigorous engineering contracts and traceable s
 | [`docs/architecture.md`](docs/architecture.md) | The master architectural essay, system planes, and visual contracts |
 | [`docs/requirements.md`](docs/requirements.md) | Traceable requirements (`REQ-BOOT`, `REQ-UX`, `REQ-SURF`, `REQ-SCENE`, `REQ-AGENT`, `REQ-AUDIO`, `REQ-SAF`) |
 | [`docs/glossary.md`](docs/glossary.md) | Standard terminology and conceptual definitions |
-| [`docs/decisions/`](docs/decisions/) | Numbered Architecture Decision Records (ADR-0001 through ADR-0010) |
+| [`docs/decisions/`](docs/decisions/) | Numbered Architecture Decision Records (ADR-0001 through ADR-0011) |
 | [`docs/milestones/`](docs/milestones/) | Phased implementation milestones, acceptance criteria, and test ledgers |
 
 ---

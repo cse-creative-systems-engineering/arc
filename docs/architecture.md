@@ -102,7 +102,7 @@ Arc employs a tiered cognitive hierarchy:
 * **Tier-2 (Verification Role)**: An independent reasoning pass that challenges the plan, checks failure modes, and flags potential security violations before passing execution to the enforcement plane.
 
 ### 2.3 The Enforcement Plane
-Inherited directly from the battle-tested architecture of Aios:
+Arc's deterministic execution and security engine enforces absolute boundaries over probabilistic models:
 * **Policy Broker**: Enforces two-dimensional authorization ($Capability \times Clearance$). No model output is ever executed directly as raw shell commands.
 * **Infrastructure Guardian**: Deterministic safety checks that enforce non-negotiable invariants (e.g., bootloader integrity, data loss prevention, firewall rules).
 * **Staged Transaction Executor**: Every consequential mutation is staged in an isolated transaction with verified health checks and automatic rollback capabilities.

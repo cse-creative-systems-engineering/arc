@@ -175,10 +175,24 @@ No language model or probabilistic agent shall possess direct, unmediated operat
 The Policy Broker shall evaluate every action proposal against a two-dimensional matrix of explicit capability (resource $\times$ operation) and clearance risk level. Missing or ambiguous capabilities shall fail closed.  
 *Source: Architecture §2.3*
 
-### REQ-SAF-003: Staged Transaction and Rollback
-All file, package, network, or driver mutations must be executed within the Staged Transaction Executor, supporting automatic health check verification and deterministic rollback upon failure.  
-*Source: Architecture §2.3*
+### REQ-SAF-003: Transaction Partitioning (Class-R vs. Class-I)
+All proposed system mutations shall be deterministically partitioned:
+1. **Class-R (Reversible Local Actions)**: File mutations, package installations, service restarts, and driver configurations shall execute in isolated staged sandboxes with automated pre-flight checkpoints, health check verification, and automatic rollback upon failure.
+2. **Class-I (Irreversible External Actions)**: Web form submissions, emails, external network requests, and remote pushes shall strictly require an explicit Visual Cryptographic Approval Gate rendered on the spatial canvas detailing the exact destination, payload diff, and target origin prior to dispatch. Class-I actions shall never be automatically committed.  
+*Source: Architecture §2.3, ADR-0006, ADR-0011*
 
 ### REQ-SAF-004: Hardware-Backed Credential Vault
 Authentication tokens, SSH keys, and persistent browser session cookies shall be stored in an encrypted local vault backed by the platform TPM2, and shall never be passed into external model context windows.  
-*Source: Architecture §2.3*
+*Source: Architecture §2.3, ADR-0009*
+
+### REQ-SAF-005: Data Provenance & Context Taint Tracking (`TaintedContext`)
+Any text, document, or DOM element ingested from external sources (web pages, emails, untrusted files, network sockets) shall be assigned an immutable cryptographic `TaintedContext` tag. Any plan or tool invocation derived from a `TaintedContext` shall be barred from accessing the TPM2 Credential Vault, reading local private keys (`~/.ssh`, `~/.gnupg`), or initiating external network egress without a dedicated, human-confirmed visual approval gate.  
+*Source: ADR-0011*
+
+### REQ-SAF-006: Origin-Bound Cryptographic Credential Vault
+The TPM2 Credential Vault shall enforce cryptographic origin isolation. Stored session cookies and authentication tokens shall only be released to engine pipes whose destination TLS connection and URL origin have been verified by the compositor to match the credential's target domain. Cross-origin credential requests shall be rejected and logged to the security audit trail.  
+*Source: ADR-0009, ADR-0011*
+
+### REQ-SAF-007: Guardian Emergency Diagnostic Override
+To prevent fail-closed deadlocks during self-healing system recovery when telemetry is stale or broken, the system shall provide an Emergency Diagnostic Override. Triggered by a physical hardware chord (`Super + Escape` held for 3 seconds) or local root/biometric verification, the override enables an isolated diagnostic recovery transaction with Guardian invariants scoped strictly to emergency recovery boundaries.  
+*Source: ADR-0011*

@@ -5,7 +5,7 @@
 
 ## Context
 
-In Aios v0.1, the generative user interface (A2UI) had language models author self-contained HTML/CSS fragments rendered inside a Tauri webview. While this allowed unbounded visual freedom, it introduced severe systems-level drawbacks:
+In early generative UI prototypes, language models authored self-contained HTML/CSS fragments rendered inside webviews. While this offered initial visual flexibility, it introduced severe systems-level drawbacks:
 1. **DOM Overhead & Reconciliation Latency**: Initializing and rendering webview frames requires parsing DOM trees, loading layout engines, and running JavaScript reconciliation.
 2. **Disconnected Evidence Binding**: Live system state telemetry (CPU, GPU, memory, process graphs) had to be serialized across a JSON-RPC / IPC boundary into the webview, creating lag and stale frames.
 3. **Aesthetic Incoherence**: Webview styling frequently clashed with native hardware acceleration, sub-pixel font rendering, and display refresh rates.
