@@ -1,8 +1,5 @@
+use arc_compositor::{intent, kinetics, reflex, wordmark};
 mod app;
-mod kinetics;
-mod wordmark;
-mod reflex;
-mod intent;
 mod renderer;
 
 use app::ArcApp;
