@@ -4,4 +4,6 @@
 pub mod intent;
 pub mod kinetics;
 pub mod reflex;
+pub mod scene_ir;
+pub mod spatial;
 pub mod wordmark;

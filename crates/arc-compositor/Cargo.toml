@@ -20,3 +20,6 @@ futures = "0.3.34"
 reqwest = { version = "0.13.5", default-features = false, features = ["json"] }
 smithay = { version = "0.7.0", default-features = false, features = ["backend_winit", "renderer_glow", "wayland_frontend"] }
 xkbcommon = "0.9.0"
+thiserror = "2.0"
+glam = { version = "0.29", features = ["bytemuck"] }
+arc-engine-supervisor = { path = "../arc-engine-supervisor" }
