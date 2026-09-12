@@ -8,6 +8,7 @@ use winit::window::Window;
 
 use crate::intent::IntentManager;
 use crate::kinetics::{build_instances, GlyphAtlas, GlyphInstance, KineticLine};
+use crate::reflex::ReflexEngine;
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -53,6 +54,8 @@ pub struct CanvasRenderer {
     instance_buffer: wgpu::Buffer,
     instance_capacity: u64,
     last_live_len: usize,
+    /// Letter-by-letter visual stream of the reflex response (REQ-UX-002).
+    response_stream: String,
 
     // Text buffers
     prompt_buffer: Buffer,
@@ -206,9 +209,15 @@ impl CanvasRenderer {
             TextRenderer::new(&mut text_atlas, &device, wgpu::MultisampleState::default(), None);
         let viewport = Viewport::new(&device, &cache);
 
-        // Text buffers
-        let prompt_buffer = Buffer::new(&mut font_system, Metrics::new(44.0, 60.0));
-        let status_buffer = Buffer::new(&mut font_system, Metrics::new(18.0, 26.0));
+        // Text buffers — oversized literary display face for the prompt
+        // (architecture §3.1: center third of the viewport), mono for status.
+        // Glyphon TextArea scale is applied per-frame against these metrics;
+        // base metrics sized for a 1440p-class canvas and scaled by resolution.
+        let ui_scale = (height as f32 / 900.0).clamp(0.8, 2.0);
+        let prompt_px = 72.0 * ui_scale;
+        let prompt_buffer = Buffer::new(&mut font_system, Metrics::new(prompt_px, prompt_px * 1.25));
+        let status_px = 18.0 * ui_scale;
+        let status_buffer = Buffer::new(&mut font_system, Metrics::new(status_px, status_px * 1.45));
 
         // --- Kinetic Per-Glyph Spring Layer ---
         let glyph_atlas = GlyphAtlas::new(&device);
@@ -345,6 +354,7 @@ impl CanvasRenderer {
             instance_buffer,
             instance_capacity,
             last_live_len: 0,
+            response_stream: String::new(),
             prompt_buffer,
             status_buffer,
         };
@@ -399,10 +409,23 @@ impl CanvasRenderer {
         self.last_live_len = live_count;
     }
 
-    pub fn render(&mut self, intent: &mut IntentManager) -> Result<(), ()> {
+    pub fn render(
+        &mut self,
+        intent: &mut IntentManager,
+        reflex: Option<&mut ReflexEngine>,
+    ) -> Result<(), ()> {
         // Cinematic clock starts at first presented frame, not process spawn.
         intent.start_clock();
         self.sync_kinetic_with_intent(intent);
+
+        // Reflex visual stream: append newly-arrived characters. The engine
+        // paces tokens letter-by-letter; the canvas just mirrors the buffer.
+        if let Some(engine) = reflex {
+            engine.poll();
+            if engine.response_so_far.len() != self.response_stream.len() {
+                self.response_stream = engine.response_so_far.clone();
+            }
+        }
 
         let frame = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(tex) => tex,
@@ -452,8 +475,13 @@ impl CanvasRenderer {
             None,
         );
 
-        // 2. Prepare Status Reflex Narrative
-        let status_display = intent.status_message.as_deref().unwrap_or("");
+        // 2. Prepare Status Reflex Narrative — the letter-by-letter Arc
+        // response, or the local acknowledgement while the query is in flight.
+        let status_display = if !self.response_stream.is_empty() {
+            self.response_stream.as_str()
+        } else {
+            intent.status_message.as_deref().unwrap_or("")
+        };
         self.status_buffer.set_size(Some(width * 0.75), Some(height * 0.15));
         self.status_buffer.set_text(
             status_display,
@@ -486,8 +514,8 @@ impl CanvasRenderer {
         let text_areas = [
             TextArea {
                 buffer: &self.prompt_buffer,
-                left: width * 0.14,
-                top: height * 0.40,
+                left: width * 0.5 - width * 0.375, // centered within the 0.75 span
+                top: height * 0.44,
                 scale: 1.0,
                 bounds: TextBounds {
                     left: 0,

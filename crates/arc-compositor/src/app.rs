@@ -8,20 +8,36 @@ use winit::keyboard::{Key, NamedKey};
 use winit::window::{Window, WindowAttributes, WindowId};
 
 use crate::intent::IntentManager;
+use crate::reflex::{ReflexConfig, ReflexEngine};
 use crate::renderer::CanvasRenderer;
+use tracing::warn;
 
 pub struct ArcApp {
     window: Option<Arc<Window>>,
     renderer: Option<CanvasRenderer>,
     intent: IntentManager,
+    reflex: Option<ReflexEngine>,
 }
 
 impl ArcApp {
     pub fn new() -> Self {
+        // Reflex bridge is optional: without ~/.config/arc/arc.env the canvas
+        // still runs (acknowledged intents only) — degrade, don't crash.
+        let reflex = match ReflexConfig::load() {
+            Some(config) => {
+                info!("Reflex bridge online: model {}", config.model);
+                Some(ReflexEngine::new(config))
+            }
+            None => {
+                warn!("No ~/.config/arc/arc.env — reflex disabled, intent echo only");
+                None
+            }
+        };
         Self {
             window: None,
             renderer: None,
             intent: IntentManager::new(),
+            reflex,
         }
     }
 }
@@ -71,7 +87,8 @@ impl ApplicationHandler for ArcApp {
 
             WindowEvent::RedrawRequested => {
                 if let Some(renderer) = &mut self.renderer {
-                    let _ = renderer.render(&mut self.intent);
+                    let reflex = self.reflex.as_mut();
+                    let _ = renderer.render(&mut self.intent, reflex);
                 }
             }
 
@@ -94,6 +111,12 @@ impl ApplicationHandler for ArcApp {
                     }
                     Key::Named(NamedKey::Enter) => {
                         self.intent.commit();
+                        if let (Some(query), Some(reflex)) =
+                            (self.intent.committed_query(), self.reflex.as_mut())
+                        {
+                            info!("Dispatching intent to reflex engine: {query}");
+                            reflex.submit(query.to_string());
+                        }
                     }
                     Key::Named(NamedKey::Space) => {
                         self.intent.push_char(' ');

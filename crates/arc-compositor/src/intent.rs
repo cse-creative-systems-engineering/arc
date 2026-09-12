@@ -108,6 +108,15 @@ impl IntentManager {
         ));
     }
 
+    /// The committed query, if one has been made and not cleared.
+    pub fn committed_query(&self) -> Option<&str> {
+        if self.is_committed {
+            Some(self.user_input.trim())
+        } else {
+            None
+        }
+    }
+
     /// Clear the intent buffer (Escape)
     pub fn clear(&mut self) {
         self.user_input.clear();
