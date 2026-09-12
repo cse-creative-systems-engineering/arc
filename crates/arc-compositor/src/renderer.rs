@@ -503,23 +503,15 @@ impl CanvasRenderer {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         let elapsed_secs = intent.elapsed().as_secs_f32();
+        let _ = elapsed_secs;
         let width = self.config.width as f32;
         let height = self.config.height as f32;
-
-        // Cinematic wordmark fade: 3s darkness, 12s bloom, glacial settle.
-        let t = elapsed_secs;
-        let darkness = smoothstep_01((t - 3.0) / 0.6);
-        let bloom_in = smoothstep_01((t - 3.0) / 12.0);
-        let bloom_decay = smoothstep_01((27.0 - t) / 12.0);
-        let boot_peak = bloom_in * bloom_decay * 0.82;
-        let ambient_pulse = 0.045 + 0.015 * (t * 0.35).sin();
-        let wm_alpha = (boot_peak.max(ambient_pulse) * darkness).clamp(0.0, 1.0);
 
         let uniforms = WatermarkUniforms {
             origin: self.wm_origin,
             size: self.wm_size,
             screen: [width as f32, height as f32],
-            alpha: wm_alpha,
+            alpha: 0.0,
             _pad: [0.0; 13],
         };
         self.queue

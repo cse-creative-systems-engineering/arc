@@ -44,10 +44,8 @@ impl IntentManager {
     pub fn visible_prompt(&self) -> &str {
         let elapsed_ms = self.elapsed().as_millis() as u64;
 
-        // Cinematic pacing: 3s of pure darkness, ARC blooms in from 3–15s;
-        // the prompt begins typing as the bloom crests (~14s), so text
-        // arrives while light is still resolving.
-        const INITIAL_STILLNESS_MS: u64 = 14000;
+        // Direct startup: prompt appears immediately at boot, no delay.
+        const INITIAL_STILLNESS_MS: u64 = 0;
         if elapsed_ms < INITIAL_STILLNESS_MS {
             return "";
         }
