@@ -34,6 +34,7 @@ This document tracks the authoring, review, and acceptance status of the Arc doc
 | [`decisions/0007-zero-copy-gpu-frame-capture.md`](decisions/0007-zero-copy-gpu-frame-capture.md) | ADR | 📝 Drafted | DMA-BUF and Vulkan/CUDA zero-copy VRAM-to-VRAM frame ingestion |
 | [`decisions/0008-native-microphone-sensory-pipeline-aec.md`](decisions/0008-native-microphone-sensory-pipeline-aec.md) | ADR | 📝 Drafted | Direct ALSA ring buffers, WebRTC AEC, and low-power VAD barge-in |
 | [`decisions/0009-scoped-browser-sessions-and-stealth.md`](decisions/0009-scoped-browser-sessions-and-stealth.md) | ADR | 📝 Drafted | Scoped TPM2 browser session bridging, CDP stealth, and 2FA handover |
+| [`decisions/0010-generative-spatial-surface-continuum.md`](decisions/0010-generative-spatial-surface-continuum.md) | ADR | 📝 Drafted | Post-application OS: Engine Pipes, spatial surfaces, living bookmark wall |
 | [`milestones/0001-nested-smithay-kinetic-canvas-spike.md`](milestones/0001-nested-smithay-kinetic-canvas-spike.md) | Milestone | 📝 Drafted | Milestone 1: Nested Smithay spike, kinetic typography |
 
 ---
@@ -42,9 +43,9 @@ This document tracks the authoring, review, and acceptance status of the Arc doc
 
 ```text
 Design docs:   3 of 3 drafted   (100%)
-ADRs:          9 of 9 drafted   (100%)
+ADRs:          10 of 10 drafted (100%)
 Milestones:    1 of 1 drafted   (100%)
-Total suite:   13 documents drafted
+Total suite:   14 documents drafted
 ```
 
 ---
@@ -66,6 +67,7 @@ graph TD
     ADR07["ADR-0007: Zero-Copy GPU Frame Capture"]
     ADR08["ADR-0008: Native Mic Pipeline & AEC"]
     ADR09["ADR-0009: Scoped Browser Sessions & Stealth"]
+    ADR10["ADR-0010: Generative Spatial Surface Continuum"]
 
     M01["Milestone 0001: Kinetic Canvas Spike"]
 
@@ -80,6 +82,7 @@ graph TD
     REQ --> ADR07
     REQ --> ADR08
     REQ --> ADR09
+    REQ --> ADR10
     ADR01 --> M01
     ADR02 --> M01
     ADR03 --> M01

@@ -17,8 +17,19 @@ For more than fifty years—from the Xerox Alto to macOS Sonoma and Windows 11�
 
 Under WIMP, the operating system is passive and dumb:
 * To perform a task, the human must manually locate applications, traverse filesystem hierarchies, manage overlapping rectangular viewports, click inside input boxes, and manually shuttle data between programs.
-* When something breaks, the OS writes cryptic logs to disk and waits for the human to notice.
+### The Death of the 1973 Metaphor
+For more than fifty years—from the Xerox Alto to macOS Sonoma and Windows 11—personal computing has been trapped inside the **WIMP** paradigm: Windows, Icons, Menus, Pointer. 
+
+Under WIMP, the operating system is passive, fragmented, and dumb:
+* The screen is divided into isolated application monoliths (Chrome, Alacritty, Spotify), each bounded by redundant title bars, tabs, borders, and close buttons.
+* To perform a task, the human must manually locate programs, traverse filesystem hierarchies, drag rectangular viewports around, click inside input boxes, and manually shuttle data between programs.
+* The operating system acts merely as a landlord renting screen estate to foreign processes.
 * When AI is added, it is invariably bolted on as a tenant—a chat window floating over the desktop or a browser sidebar fighting with the window manager for screen space.
+
+### The Post-Application Operating Environment
+Arc completely abolishes standalone "applications," "window frames," and "start menus." The desktop is not a collection of running program windows; it is **one continuous, living, GPU-accelerated spatial canvas**.
+
+Capabilities (web browsing, shell execution, audio playback, visual modeling) are delivered as headless **Engine Pipes** that stream raw hardware textures directly into the canvas. Arc synthesizes the surrounding surfaces, controls, and layouts on demand based entirely on human intent.
 
 ### The Archimedes Lever
 Archimedes recognized that mechanical advantage transforms human effort. Arc applies this principle to computing:
@@ -72,8 +83,8 @@ Arc is divided into four distinct planes of responsibility:
 ┌────────────────────────────────────────────────────────────────────────┐
 │                        DISPLAY & CANVAS PLANE                          │
 │   Smithay Wayland Compositor  │  WGPU Hardware Scene Graph             │
-│   2.5D Amphitheater Stage     │  Kinetic Typography Engine             │
-│   Ghost Pointer Choreography  │  Procedural Ambient Shaders            │
+│   Spatial Surface Continuum   │  Kinetic Typography Engine             │
+│   Headless Engine Pipes       │  Procedural Ambient Shaders            │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -100,7 +111,8 @@ Inherited directly from the battle-tested architecture of Aios:
 ### 2.4 The Display & Canvas Plane
 Arc controls the entire display through a custom Wayland compositor built with **Smithay** and **WGPU**:
 * Bypasses X11, GNOME, KDE, and WebViews completely.
-* Renders the UI directly onto the DRM/KMS framebuffer with hardware-accelerated shaders at native monitor refresh rates (120Hz/240Hz).
+* **Spatial Surface Engine**: Renders dynamic, generative surfaces directly onto the DRM/KMS framebuffer with hardware-accelerated shaders at native monitor refresh rates (120Hz/240Hz).
+* **Engine Pipe Ingestion**: Ingests offscreen GPU textures (DMA-BUFs) rendered by headless browser engines (Chromium/Servo) and pseudo-terminals, mapping them onto fluid spatial surfaces without window chrome.
 
 ---
 
@@ -121,10 +133,17 @@ Arc features no search boxes, docks, or permanent text fields:
 * Backspace removes glyphs with physics-based spring transitions.
 * Hitting `Enter` commits the intent to the reflex engine.
 
-### 3.3 The 2.5D Amphitheater Stage
-When windows or visual tasks are summoned, they do not clutter a flat desktop:
-* **Curved Focal Plane**: Windows exist in a 3D perspective projection with depth-of-field blur.
-* **Cinematic Rack Focus**: When Arc works on a window (e.g., Indeed.com), that window is in razor-sharp focus front and center. Secondary reference windows (e.g., Webmail) sit angled slightly in the periphery with a soft depth-of-field blur. When focus shifts, the camera smoothly racks focus.
+### 3.3 The Spatial Surface Continuum & Dynamic Layout Synthesis
+In Arc, there are no overlapping rectangular application windows. All visual content exists as fluid **Spatial Surfaces** rendered directly on the continuous GPU canvas:
+* **The Living Bookmark Wall (Canonical Scenario)**:
+  When the human instructs:
+  > *"Arc, set a portion of the desktop dedicated to holding my bookmarked sites. Display a thumbnail for each bookmark so when I click on it that page is displayed."*
+  - Arc interprets this as a **Spatial Layout Synthesis** request.
+  - It does not launch an external program. It synthesizes an ambient glassmorphic gallery surface directly on the designated canvas region.
+  - Headless web engine pipes render live thumbnail viewports into GPU DMA-BUF textures in real time.
+  - When the user clicks a thumbnail, the card **fluidly morphs and expands** across the canvas into a full interactive web surface in-place, without opening a separate browser window or displaying browser chrome.
+* **Curved 3D Focal Plane & Rack Focus**:
+  Surfaces exist along a subtle curved perspective depth. When Arc or the user focuses on an active task surface (e.g., Indeed navigation), that surface holds razor-sharp focus front and center. Reference surfaces sit angled slightly in the periphery with a soft GPU depth-of-field blur. Focus transitions rack focus smoothly across the spatial scene.
 
 ---
 
@@ -160,7 +179,7 @@ Arc does not merely dump instructions—it executes the workflow as an orchestra
 
 1. **Hardware & Capability Discovery**: Checks available GPU hardware (`nvidia-smi` / DRM devices), verifying VRAM capacity and CUDA toolkit compatibility.
 2. **Isolated Environment Staging**: Creates a sandboxed development workspace using `uv` or isolated rootless namespaces (`bwrap`).
-3. **Weight Streaming & Hub Verification**: Pulls model weights directly with chunked SHA-256 integrity verification, rendering a sleek progress gauge in a monospace stage terminal.
+3. **Weight Streaming & Hub Verification**: Pulls model weights directly with chunked SHA-256 integrity verification, rendering a sleek progress gauge in a monospace stage terminal surface.
 4. **Scaffolding & Synthetic Verification**: Generates the PyTorch/HuggingFace LoRA training harness, configures 4-bit quantization and flash-attention, and runs a synthetic forward/backward pass with dummy tensors to verify that the pipeline executes without out-of-memory (OOM) errors.
 5. **Standby Handover**: Reports completion via ambient voice and kinetic typography, waiting for the human's dataset instructions.
 
@@ -180,16 +199,16 @@ The critical failure of traditional "computer use" agents is relying on imprecis
                  ▼                                         ▼
          Control Channel                            Visual Channel
       (Deterministic IPC)                       (Human Transparency)
-  - Chrome DevTools Protocol (CDP)          - Compositor spawns browser window
-  - Linux AT-SPI Accessibility Tree         - Window animates onto stage
+  - Chrome DevTools Protocol (CDP)          - Compositor synthesizes web surface
+  - Linux AT-SPI Accessibility Tree         - Surface animates onto stage
   - Exact DOM element manipulation          - Ghost cursor glides with spring easing
   - Zero misclicks / instant auth           - User watches every action in real time
 ```
 
 ### 6.1 The Ghost in the Machine
-* **The Luminous Beacon**: When Arc operates on a window, the compositor renders a soft, luminous cursor that glides smoothly across the UI using cubic-bezier curves.
+* **The Luminous Beacon**: When Arc operates on a surface, the compositor renders a soft, luminous cursor that glides smoothly across the UI using cubic-bezier curves.
 * **Tactile Feedback**: As the cursor reaches buttons or fields, the UI elements gently illuminate, dropdowns expand, and forms populate at human-comprehensible speed.
-* **Narrative Pulse**: In the negative space below the active window, a single line of streaming monospace text narrates Arc's internal progress in real time.
+* **Narrative Pulse**: In the negative space below the active surface, a single line of streaming monospace text narrates Arc's internal progress in real time.
 
 ---
 

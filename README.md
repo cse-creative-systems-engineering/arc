@@ -19,13 +19,15 @@ Arc abolishes this 50-year-old scaffolding:
 
 1. **The Ambient Void (Zero-Input Canvas)**:
    Arc boots in under 1.5 seconds directly to a black OLED canvas via DRM/KMS. There is no dock, no desktop icons, and no search bar. When you type or speak, the display server itself captures your intent and streams kinetic typography across the screen.
-2. **Generative Domain Scenes**:
+2. **The Spatial Surface Continuum (Post-Application OS)**:
+   Standalone application windows, title bars, and docks are abolished. Capabilities (web, terminal, media) run as headless Engine Pipes rendering directly into GPU DMA-BUF textures. Arc synthesizes and morphs spatial surfaces dynamically on the canvas based on user intent (e.g., creating a living bookmark wall with live thumbnails).
+3. **Generative Domain Scenes**:
    Directories are no longer walls of filenames (`ls`). Querying your files generates a high-fidelity visual scene tailored to the domain: an acoustic listening room for music, a structured research desk for papers, or an interactive pipeline diagram for a codebase.
-3. **Autonomous Visible Agency**:
-   When you ask Arc to perform complex real-world workflows—such as inspecting email, navigating job boards, or configuring machine learning pipelines—Arc stages and executes the task visibly. Windows open, ghost pointers navigate, and actions occur with physical spring dynamics and sub-pixel precision.
-4. **Dual-Channel Execution**:
+4. **Autonomous Visible Agency**:
+   When you ask Arc to perform complex real-world workflows—such as inspecting email, navigating job boards, or configuring machine learning pipelines—Arc stages and executes the task visibly. Surfaces synthesize and morph, ghost pointers navigate, and actions occur with physical spring dynamics and sub-pixel precision.
+5. **Dual-Channel Execution**:
    To prevent the fragility of traditional computer-vision agents, Arc separates *visual choreography* (what you see) from *deterministic control* (CDP, AT-SPI, eBPF, and kernel APIs). Actions are 100% reliable and visually transparent.
-5. **Native Full-Duplex Audio**:
+6. **Native Full-Duplex Audio**:
    Integrated directly into Linux's PipeWire pro-audio graph, Arc listens and speaks with sub-200ms roundtrip latency, featuring automatic audio ducking and biological speech cadence.
 
 ---
@@ -78,7 +80,7 @@ flowchart TD
 - **Sensory Plane**: Real-time perception through PipeWire, `libinput`, AT-SPI, and eBPF kernel monitors.
 - **Intent Plane**: Fast local reflex models (for streaming UI and keyboard parsing) paired with deep cognitive planners.
 - **Enforcement Plane**: Inherited from Aios's battle-tested security core—the Policy Broker, Infrastructure Guardian, and Staged Transaction Executor ensure no model possesses unchecked authority.
-- **Display Plane**: A custom Rust Wayland compositor (`smithay` + `wgpu`) rendering 2.5D amphitheater window stages, kinetic typography, and generative domain scenes at native display refresh rates.
+- **Display Plane**: A custom Rust Wayland compositor (`smithay` + `wgpu`) rendering the spatial surface continuum, kinetic typography, and generative domain scenes at native display refresh rates.
 
 ---
 
@@ -90,9 +92,9 @@ The documentation for Arc follows rigorous engineering contracts and traceable s
 |---|---|
 | [`docs/doc-progress.md`](docs/doc-progress.md) | Living documentation status tracker and dependency graph |
 | [`docs/architecture.md`](docs/architecture.md) | The master architectural essay, system planes, and visual contracts |
-| [`docs/requirements.md`](docs/requirements.md) | Traceable requirements (`REQ-BOOT`, `REQ-UX`, `REQ-SCENE`, `REQ-AGENT`, `REQ-AUDIO`, `REQ-SAF`) |
+| [`docs/requirements.md`](docs/requirements.md) | Traceable requirements (`REQ-BOOT`, `REQ-UX`, `REQ-SURF`, `REQ-SCENE`, `REQ-AGENT`, `REQ-AUDIO`, `REQ-SAF`) |
 | [`docs/glossary.md`](docs/glossary.md) | Standard terminology and conceptual definitions |
-| [`docs/decisions/`](docs/decisions/) | Numbered Architecture Decision Records (ADR-0001 through ADR-0009) |
+| [`docs/decisions/`](docs/decisions/) | Numbered Architecture Decision Records (ADR-0001 through ADR-0010) |
 | [`docs/milestones/`](docs/milestones/) | Phased implementation milestones, acceptance criteria, and test ledgers |
 
 ---

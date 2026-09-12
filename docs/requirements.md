@@ -12,7 +12,8 @@ This document formalizes the functional, technical, safety, and experiential req
 | Code | Category |
 |---|---|
 | `BOOT` | Cold boot, DRM/KMS framebuffer, startup latency |
-| `UX` | Zero-input canvas, kinetic typography, 2.5D amphitheater stage |
+| `UX` | Zero-input canvas, kinetic typography, spatial surface continuum |
+| `SURF` | Generative spatial surfaces, engine pipes, dynamic layout synthesis |
 | `SCENE` | Generative domain scenes and semantic data representation |
 | `AGENT` | Autonomous engineering, dual-channel agency, ghost choreography |
 | `AUDIO` | PipeWire integration, full-duplex voice, media ducking |
@@ -50,9 +51,9 @@ All text streamed from the intent engine or typed by the user shall be rendered 
 The compositor typography engine shall enforce a strict dual-typeface hierarchy: an elegant literary/editorial display face for human narrative and intent prompts, and an ultra-precise monospaced font for technical output, code diffs, and execution telemetry.  
 *Source: Architecture §3.1*
 
-### REQ-UX-004: 2.5D Amphitheater Perspective Stage
-Application windows shall be rendered on a curved 3D perspective plane with GPU-accelerated depth-of-field blur. The active focus window shall remain in sharp focus while inactive windows are softly blurred and angled in the periphery.  
-*Source: Architecture §3.3*
+### REQ-UX-004: Spatial Surface Continuum
+All visual surfaces shall be rendered along a curved 3D perspective depth with GPU-accelerated depth-of-field blur. The active focus surface shall remain in sharp focus while inactive reference surfaces are softly blurred and angled in the periphery. Window title bars, maximize/minimize buttons, and window frames are abolished.  
+*Source: Architecture §3.3, ADR-0010*
 
 ### REQ-UX-005: Native Input Method (IME) Integration
 The compositor Global Intent Buffer shall implement the server-side Wayland `zwp_text_input_v3` protocol, enabling native input method engines (e.g., `fcitx5`, `ibus`) to display CJK pre-edit strings and candidate menus directly above the kinetic typography stream.  
@@ -60,7 +61,23 @@ The compositor Global Intent Buffer shall implement the server-side Wayland `zwp
 
 ---
 
-## 3. Generative Domain Scenes (`REQ-SCENE`)
+## 3. Generative Spatial Surfaces (`REQ-SURF`)
+
+### REQ-SURF-001: Headless Engine Texture Pipes via DMA-BUF
+All non-native visual workloads (web content, terminal emulators, video streams) shall be executed by headless engine pipes (e.g., headless Chromium, PTY subprocesses) rendering directly into offscreen GPU DMA-BUF textures. Engine pipes shall not instantiate window frames or client-side UI decorations.  
+*Source: Architecture §2.4, ADR-0010*
+
+### REQ-SURF-002: Intent-Driven Spatial Layout Synthesis
+The compositor shall synthesize, position, and shape surface layouts on demand in response to natural user prompts (e.g., dedicating a canvas region for live bookmark thumbnails or placing an audio monitor). Start menus, application launchers, and fixed desktop docks are abolished.  
+*Source: Architecture §3.3, ADR-0010*
+
+### REQ-SURF-003: Fluid Morphing & In-Place Surface Expansion
+Surfaces shall transition fluidly across the canvas using GPU compute shaders and physical spring dynamics. Interacting with a preview or thumbnail surface (e.g., a bookmarked site card) shall expand the surface in-place into an active interactive viewport without opening a separate window entity.  
+*Source: Architecture §3.3, ADR-0010*
+
+---
+
+## 4. Generative Domain Scenes (`REQ-SCENE`)
 
 ### REQ-SCENE-001: Abolition of Raw File Trees
 Filesystem queries and directory inspections shall not be presented to the user as plain text lists or generic icon grids. The compositor shall instantiate a domain-specific visual scene corresponding to the semantic classification of the directory contents.  
@@ -76,7 +93,7 @@ When inspecting software projects, Arc shall render an interactive dependency an
 
 ---
 
-## 4. Autonomous Agency and Choreography (`REQ-AGENT`)
+## 5. Autonomous Agency and Choreography (`REQ-AGENT`)
 
 ### REQ-AGENT-001: Dual-Channel Control Architecture & Privileged Input Gating
 All autonomous web and application interactions shall be executed through deterministic control channels (CDP, AT-SPI) while simultaneously choreographing visible pointer and keyboard movements on the screen. Coordinate-guessing screenshot models shall not be used for critical path actions. Wayland virtual input protocols (`zwp_virtual_pointer_v1`, `zwp_virtual_keyboard_v1`) shall be restricted via `SO_PEERCRED` socket credentials strictly to authenticated internal Arc engine threads, terminating unauthenticated third-party client bindings immediately.  
@@ -120,7 +137,7 @@ In the event of network partition or cloud provider unavailability, Arc shall gr
 
 ---
 
-## 5. Ambient Voice Duplex (`REQ-AUDIO`)
+## 6. Ambient Voice Duplex (`REQ-AUDIO`)
 
 ### REQ-AUDIO-001: Native PipeWire Audio Node
 Arc shall connect directly as an active streaming node in the Linux PipeWire pro-audio graph, bypassing legacy audio daemon emulation layers.  
@@ -148,7 +165,7 @@ When the active output sink is determined to be a headphone or in-ear monitor (v
 
 ---
 
-## 6. Safety and Deterministic Enforcement (`REQ-SAF`)
+## 7. Safety and Deterministic Enforcement (`REQ-SAF`)
 
 ### REQ-SAF-001: Strict Separation of Decision and Execution
 No language model or probabilistic agent shall possess direct, unmediated operating system authority. All mutations must be formulated as structured proposals submitted to the Policy Broker.  
