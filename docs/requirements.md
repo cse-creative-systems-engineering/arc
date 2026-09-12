@@ -75,6 +75,14 @@ The compositor shall synthesize, position, and shape surface layouts on demand i
 Surfaces shall transition fluidly across the canvas using GPU compute shaders and physical spring dynamics. Interacting with a preview or thumbnail surface (e.g., a bookmarked site card) shall expand the surface in-place into an active interactive viewport without opening a separate window entity.  
 *Source: Architecture §3.3, ADR-0010*
 
+### REQ-SURF-004: Deterministic 3D Raycasting & Input Hit Arbitration
+Pointer coordinates $(X_{\text{screen}}, Y_{\text{screen}})$ shall be cast as 3D rays from the virtual camera through the frustum to intersect planar surface transforms. The foremost surface (lowest positive $Z_{\text{depth}}$ along the ray) shall receive exclusive pointer capture. Occluded surfaces shall deterministically reject pointer and touch events. A 2-pixel hysteresis boundary shall prevent rapid focus thrashing during smooth camera movement.  
+*Source: ADR-0012*
+
+### REQ-SURF-005: Two-Tier Spatial Session Checkpointing & Lazy Rehydration
+Spatial surface coordinates, camera transforms, and workspace clusters shall be atomically persisted to an embedded SQLite database (`~/.local/share/arc/canvas_state.db`). On boot, the canvas shall restore visual layout immediately using cached DMA-BUF thumbnail textures, spinning up live headless engine pipes lazily only as surfaces enter the camera frustum.  
+*Source: ADR-0012*
+
 ---
 
 ## 4. Generative Domain Scenes (`REQ-SCENE`)
@@ -90,6 +98,14 @@ When inspecting directories classified as audio/music, Arc shall instantiate an 
 ### REQ-SCENE-003: Codebase Landscape Scene
 When inspecting software projects, Arc shall render an interactive dependency and architectural scene indicating module health, git status, and test execution status.  
 *Source: Architecture §4*
+
+### REQ-SCENE-004: Strictly Validated Scene Graph Intermediate Representation (`ArcSceneIR`)
+All generative domain scenes synthesized by reflex or planner models must compile into a strictly typed, schema-validated AST (`ArcSceneIR`) constrained to primitives (`SurfaceContainer`, `GridLayout`, `ThumbnailGrid`, `KineticStream`, `VectorCard`, `DataStreamNode`) with a maximum tree depth of 8 and maximum 64 children per node. Transparent interaction blockers (opacity = 0 with hit-test enabled) shall be rejected. Any invalid AST shall fail closed to a single kinetic text card.  
+*Source: ADR-0012*
+
+### REQ-SCENE-005: Zero-Allocation Lock-Free State Binding
+Telemetry and operating metrics shall stream into the scene graph via lock-free ring buffers (`crossbeam-channel` / atomic scalar slots) and write directly to mapped GPU uniform/instance buffers (`wgpu::Queue::write_buffer_staged`). The compositor render thread shall perform zero heap allocations during scene graph traversal and frame drawing.  
+*Source: ADR-0012*
 
 ---
 

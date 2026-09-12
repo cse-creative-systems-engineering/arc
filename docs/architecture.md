@@ -168,6 +168,8 @@ User: "What's in the music directory?"
 - **Research / Documents**: Generates a research desk with interactive document summaries, citation trees, and concept graphs.
 - **Code Repositories**: Generates an architectural dependency map with real-time test status, commit diffs, and health indicators.
 
+Generative scenes are synthesized by compiling planner intent into a strictly typed, schema-constrained AST (**ArcSceneIR**). Live system telemetry and engine pipe outputs bind directly to WGPU uniform and instance buffers via lock-free ring buffers, completely bypassing DOM reconciliation and maintaining a steady 120Hz/144Hz display framerate with zero heap allocations on the render path (ADR-0012).
+
 ---
 
 ## 5. Autonomous Systems Engineering

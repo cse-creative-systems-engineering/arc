@@ -36,6 +36,7 @@ This document tracks the authoring, review, and acceptance status of the Arc doc
 | [`decisions/0009-scoped-browser-sessions-and-stealth.md`](decisions/0009-scoped-browser-sessions-and-stealth.md) | ADR | 📝 Drafted | Scoped TPM2 browser session bridging, CDP stealth, and 2FA handover |
 | [`decisions/0010-generative-spatial-surface-continuum.md`](decisions/0010-generative-spatial-surface-continuum.md) | ADR | 📝 Drafted | Post-application OS: Engine Pipes, spatial surfaces, living bookmark wall |
 | [`decisions/0011-data-provenance-taint-tracking-and-irreversible-actions.md`](decisions/0011-data-provenance-taint-tracking-and-irreversible-actions.md) | ADR | 📝 Drafted | Context taint tracking, Class-I irreversible actions, cryptographic signoff |
+| [`decisions/0012-generative-domain-scenes-and-kinetic-lifecycle.md`](decisions/0012-generative-domain-scenes-and-kinetic-lifecycle.md) | ADR | 📝 Drafted | Validated Scene-IR, zero-allocation state binding, 3D raycast hit arbitration, two-tier checkpointing |
 | [`milestones/0001-nested-smithay-kinetic-canvas-spike.md`](milestones/0001-nested-smithay-kinetic-canvas-spike.md) | Milestone | 📝 Drafted | Milestone 1: Nested Smithay spike, kinetic typography |
 
 ---
@@ -44,9 +45,9 @@ This document tracks the authoring, review, and acceptance status of the Arc doc
 
 ```text
 Design docs:   3 of 3 drafted   (100%)
-ADRs:          11 of 11 drafted (100%)
+ADRs:          12 of 12 drafted (100%)
 Milestones:    1 of 1 drafted   (100%)
-Total suite:   15 documents drafted
+Total suite:   16 documents drafted
 ```
 
 ---
@@ -70,6 +71,7 @@ graph TD
     ADR09["ADR-0009: Scoped Browser Sessions & Stealth"]
     ADR10["ADR-0010: Generative Spatial Surface Continuum"]
     ADR11["ADR-0011: Context Taint & Class-I Mutations"]
+    ADR12["ADR-0012: Domain Scenes & Kinetic Lifecycle"]
 
     M01["Milestone 0001: Kinetic Canvas Spike"]
 
@@ -86,6 +88,7 @@ graph TD
     REQ --> ADR09
     REQ --> ADR10
     REQ --> ADR11
+    REQ --> ADR12
     ADR01 --> M01
     ADR02 --> M01
     ADR03 --> M01
