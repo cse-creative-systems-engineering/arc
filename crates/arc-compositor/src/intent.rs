@@ -6,7 +6,7 @@ pub const CANONICAL_PROMPT: &str = "Welcome to Arc, what would you like to do to
 /// Tracks biological typing cadence and user zero-input intent buffer
 #[derive(Debug)]
 pub struct IntentManager {
-    boot_time: Instant,
+    first_frame: Option<Instant>,
     pub user_input: String,
     pub is_committed: bool,
     pub status_message: Option<String>,
@@ -15,16 +15,28 @@ pub struct IntentManager {
 impl IntentManager {
     pub fn new() -> Self {
         Self {
-            boot_time: Instant::now(),
+            first_frame: None,
             user_input: String::new(),
             is_committed: false,
             status_message: None,
         }
     }
 
-    /// Elapsed time since boot
+    /// Elapsed time since first render (the cinematic clock must start when
+    /// the first frame hits the display, not at process spawn — wgpu init
+    /// takes seconds and would eat the darkness hold).
     pub fn elapsed(&self) -> Duration {
-        self.boot_time.elapsed()
+        match self.first_frame {
+            Some(t0) => t0.elapsed(),
+            None => Duration::ZERO,
+        }
+    }
+
+    /// Called by the renderer on its first frame to start the clock.
+    pub fn start_clock(&mut self) {
+        if self.first_frame.is_none() {
+            self.first_frame = Some(Instant::now());
+        }
     }
 
     /// Returns the slice of the canonical prompt visible at the current elapsed time.
@@ -32,8 +44,10 @@ impl IntentManager {
     pub fn visible_prompt(&self) -> &str {
         let elapsed_ms = self.elapsed().as_millis() as u64;
 
-        // Initial 1.2s stillness while the ARC titanium watermark blooms
-        const INITIAL_STILLNESS_MS: u64 = 1200;
+        // Cinematic pacing: 3s of pure darkness, ARC blooms in from 3–15s;
+        // the prompt begins typing as the bloom crests (~14s), so text
+        // arrives while light is still resolving.
+        const INITIAL_STILLNESS_MS: u64 = 14000;
         if elapsed_ms < INITIAL_STILLNESS_MS {
             return "";
         }

@@ -7,6 +7,7 @@ use wgpu::util::DeviceExt;
 use winit::window::Window;
 
 use crate::intent::IntentManager;
+use crate::kinetics::{build_instances, GlyphAtlas, GlyphInstance, KineticLine};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -15,6 +16,13 @@ pub struct VoidUniforms {
     pub screen_width: f32,
     pub screen_height: f32,
     pub watermark_opacity: f32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
+pub struct CameraUniforms {
+    pub screen_size: [f32; 2],
+    pub _pad: [f32; 2],
 }
 
 pub struct CanvasRenderer {
@@ -36,9 +44,18 @@ pub struct CanvasRenderer {
     text_renderer: TextRenderer,
     viewport: Viewport,
 
+    // Kinetic per-glyph spring layer
+    kinetic_line: KineticLine,
+    glyph_atlas: GlyphAtlas,
+    kinetics_pipeline: wgpu::RenderPipeline,
+    camera_buffer: wgpu::Buffer,
+    kinetics_bind_group: wgpu::BindGroup,
+    instance_buffer: wgpu::Buffer,
+    instance_capacity: u64,
+    last_live_len: usize,
+
     // Text buffers
     prompt_buffer: Buffer,
-    input_buffer: Buffer,
     status_buffer: Buffer,
 }
 
@@ -98,7 +115,7 @@ impl CanvasRenderer {
         surface.configure(&device, &config);
 
         // --- Void Shader Pipeline ---
-        let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        let void_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("Obsidian Void & Watermark Shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("shaders/void.wgsl").into()),
         });
@@ -150,13 +167,13 @@ impl CanvasRenderer {
             label: Some("Void Render Pipeline"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &shader,
+                module: &void_shader,
                 entry_point: Some("vs_main"),
                 buffers: &[],
                 compilation_options: Default::default(),
             },
             fragment: Some(wgpu::FragmentState {
-                module: &shader,
+                module: &void_shader,
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: surface_format,
@@ -190,11 +207,123 @@ impl CanvasRenderer {
         let viewport = Viewport::new(&device, &cache);
 
         // Text buffers
-        let prompt_buffer = Buffer::new(&mut font_system, Metrics::new(32.0, 44.0));
-        let input_buffer = Buffer::new(&mut font_system, Metrics::new(26.0, 36.0));
+        let prompt_buffer = Buffer::new(&mut font_system, Metrics::new(44.0, 60.0));
         let status_buffer = Buffer::new(&mut font_system, Metrics::new(18.0, 26.0));
 
-        Self {
+        // --- Kinetic Per-Glyph Spring Layer ---
+        let glyph_atlas = GlyphAtlas::new(&device);
+        let kinetic_line = KineticLine::new(64.0, width as f32 * 0.72);
+
+        let kinetics_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: Some("Kinetic Glyph Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/kinetics.wgsl").into()),
+        });
+
+        let camera_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Kinetic Camera Uniform"),
+            contents: bytemuck::cast_slice(&[CameraUniforms {
+                screen_size: [width as f32, height as f32],
+                _pad: [0.0; 2],
+            }]),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        });
+
+        let camera_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: Some("Kinetic Camera Layout"),
+            entries: &[wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::VERTEX,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            }],
+        });
+        let kinetics_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Kinetic Camera Bind Group"),
+            layout: &camera_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: camera_buffer.as_entire_binding(),
+            }],
+        });
+
+        let kinetics_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Kinetic Pipeline Layout"),
+                bind_group_layouts: &[Some(&camera_layout), Some(&glyph_atlas.bind_group_layout)],
+                immediate_size: 0,
+            });
+
+        let instance_capacity = 256u64;
+        let instance_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Kinetic Instance Buffer"),
+            size: instance_capacity * std::mem::size_of::<GlyphInstance>() as u64,
+            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let glyph_vertex_layout = wgpu::VertexBufferLayout {
+            array_stride: std::mem::size_of::<GlyphInstance>() as u64,
+            step_mode: wgpu::VertexStepMode::Instance,
+            attributes: &[
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 0,
+                    shader_location: 0,
+                }, // pos
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 8,
+                    shader_location: 1,
+                }, // size
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 16,
+                    shader_location: 2,
+                }, // uv0
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32x2,
+                    offset: 24,
+                    shader_location: 3,
+                }, // uv1
+                wgpu::VertexAttribute {
+                    format: wgpu::VertexFormat::Float32,
+                    offset: 40,
+                    shader_location: 4,
+                }, // alpha (scale at 32 unused by shader)
+            ],
+        };
+
+        let kinetics_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+            label: Some("Kinetic Render Pipeline"),
+            layout: Some(&kinetics_pipeline_layout),
+            vertex: wgpu::VertexState {
+                module: &kinetics_shader,
+                entry_point: Some("vs_main"),
+                buffers: &[Some(glyph_vertex_layout)],
+                compilation_options: Default::default(),
+            },
+            fragment: Some(wgpu::FragmentState {
+                module: &kinetics_shader,
+                entry_point: Some("fs_main"),
+                targets: &[Some(wgpu::ColorTargetState {
+                    format: surface_format,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                    write_mask: wgpu::ColorWrites::ALL,
+                })],
+                compilation_options: Default::default(),
+            }),
+            primitive: wgpu::PrimitiveState::default(),
+            depth_stencil: None,
+            multisample: wgpu::MultisampleState::default(),
+            multiview_mask: None,
+            cache: None,
+        });
+
+        let mut this = Self {
             window,
             device,
             queue,
@@ -208,10 +337,19 @@ impl CanvasRenderer {
             text_atlas,
             text_renderer,
             viewport,
+            kinetic_line,
+            glyph_atlas,
+            kinetics_pipeline,
+            camera_buffer,
+            kinetics_bind_group,
+            instance_buffer,
+            instance_capacity,
+            last_live_len: 0,
             prompt_buffer,
-            input_buffer,
             status_buffer,
-        }
+        };
+        this.sync_kinetic_with_intent(&IntentManager::new());
+        this
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -219,10 +357,53 @@ impl CanvasRenderer {
             self.config.width = width;
             self.config.height = height;
             self.surface.configure(&self.device, &self.config);
+            self.queue.write_buffer(
+                &self.camera_buffer,
+                0,
+                bytemuck::cast_slice(&[CameraUniforms {
+                    screen_size: [width as f32, height as f32],
+                    _pad: [0.0; 2],
+                }]),
+            );
         }
     }
 
-    pub fn render(&mut self, intent: &IntentManager) -> Result<(), ()> {
+    /// Mirror intent buffer diffs into the kinetic line (push/pop with springs).
+    fn sync_kinetic_with_intent(&mut self, intent: &IntentManager) {
+        // Backspace: live count shrank -> pop the last live glyph.
+        let live_count = intent.user_input.chars().count();
+        if live_count < self.last_live_len {
+            for _ in 0..(self.last_live_len - live_count) {
+                self.kinetic_line.pop();
+            }
+        } else if live_count > self.last_live_len {
+            let chars: Vec<char> = intent.user_input.chars().collect();
+            for &ch in &chars[self.last_live_len..live_count] {
+                if ch == ' ' {
+                    // Space advances the cursor without a visible glyph.
+                    self.kinetic_line.caret_x += 18.0;
+                    self.last_live_len += 1;
+                    continue;
+                }
+                self.kinetic_line.push(
+                    ch,
+                    &mut self.font_system,
+                    &mut self.swash_cache,
+                    &self.device,
+                    &self.queue,
+                    &mut self.glyph_atlas,
+                );
+                self.last_live_len += 1;
+            }
+        }
+        self.last_live_len = live_count;
+    }
+
+    pub fn render(&mut self, intent: &mut IntentManager) -> Result<(), ()> {
+        // Cinematic clock starts at first presented frame, not process spawn.
+        intent.start_clock();
+        self.sync_kinetic_with_intent(intent);
+
         let frame = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(tex) => tex,
             wgpu::CurrentSurfaceTexture::Suboptimal(tex) => tex,
@@ -261,68 +442,52 @@ impl CanvasRenderer {
             },
         );
 
-        // 1. Prepare Welcome Prompt
+        // 1. Prepare Welcome Prompt (oversized literary display face, center third)
         let visible_prompt = intent.visible_prompt();
-        self.prompt_buffer.set_size(
-            Some(width * 0.75),
-            Some(height * 0.3),
-        );
+        self.prompt_buffer.set_size(Some(width * 0.75), Some(height * 0.3));
         self.prompt_buffer.set_text(
             visible_prompt,
-            &Attrs::new()
-                .family(Family::Serif)
-                .weight(Weight::MEDIUM),
+            &Attrs::new().family(Family::Serif).weight(Weight::MEDIUM),
             Shaping::Advanced,
             None,
         );
 
-        // 2. Prepare User Zero-Input Text
-        let mut user_display = intent.user_input.clone();
-        if intent.is_prompt_complete() && !intent.is_committed {
-            // Blinking caret
-            if (elapsed_secs * 2.5) as u32 % 2 == 0 {
-                user_display.push('│');
-            }
-        }
-        self.input_buffer.set_size(
-            Some(width * 0.75),
-            Some(height * 0.2),
-        );
-        self.input_buffer.set_text(
-            &user_display,
-            &Attrs::new()
-                .family(Family::Monospace)
-                .weight(Weight::NORMAL),
-            Shaping::Advanced,
-            None,
-        );
-
-        // 3. Prepare Status Reflex Narrative
+        // 2. Prepare Status Reflex Narrative
         let status_display = intent.status_message.as_deref().unwrap_or("");
-        self.status_buffer.set_size(
-            Some(width * 0.75),
-            Some(height * 0.15),
-        );
+        self.status_buffer.set_size(Some(width * 0.75), Some(height * 0.15));
         self.status_buffer.set_text(
             status_display,
-            &Attrs::new()
-                .family(Family::Monospace)
-                .weight(Weight::LIGHT),
+            &Attrs::new().family(Family::Monospace).weight(Weight::LIGHT),
             Shaping::Advanced,
             None,
         );
 
-        // Center calculation
-        let center_x = width * 0.14;
-        let prompt_y = height * 0.44;
-        let input_y = prompt_y + 60.0;
-        let status_y = input_y + 50.0;
+        // Kinetic typography: user zero-input stream renders via spring layer,
+        // not glyphon. Blinking caret appended as a live glyph-cell is
+        // Milestone 0002 polish; caret position tracked here for the future.
+        let dt = 1.0 / 120.0;
+        let kinetic_alive = self.kinetic_line.step(dt);
+        let mut instances: Vec<GlyphInstance> = Vec::with_capacity(128);
+        build_instances(
+            &self.kinetic_line,
+            [width * 0.14, height * 0.52],
+            1024.0,
+            &mut instances,
+        );
+        let byte_len = (instances.len() * std::mem::size_of::<GlyphInstance>()) as u64;
+        if !instances.is_empty() {
+            debug_assert!(
+                byte_len <= self.instance_capacity * std::mem::size_of::<GlyphInstance>() as u64,
+                "kinetic instance overflow"
+            );
+            self.queue.write_buffer(&self.instance_buffer, 0, bytemuck::cast_slice(&instances));
+        }
 
         let text_areas = [
             TextArea {
                 buffer: &self.prompt_buffer,
-                left: center_x,
-                top: prompt_y,
+                left: width * 0.14,
+                top: height * 0.40,
                 scale: 1.0,
                 bounds: TextBounds {
                     left: 0,
@@ -334,23 +499,9 @@ impl CanvasRenderer {
                 custom_glyphs: &[],
             },
             TextArea {
-                buffer: &self.input_buffer,
-                left: center_x,
-                top: input_y,
-                scale: 1.0,
-                bounds: TextBounds {
-                    left: 0,
-                    top: 0,
-                    right: width as i32,
-                    bottom: height as i32,
-                },
-                default_color: Color::rgb(142, 202, 230),
-                custom_glyphs: &[],
-            },
-            TextArea {
                 buffer: &self.status_buffer,
-                left: center_x,
-                top: status_y,
+                left: width * 0.14,
+                top: height * 0.66,
                 scale: 1.0,
                 bounds: TextBounds {
                     left: 0,
@@ -404,7 +555,17 @@ impl CanvasRenderer {
             render_pass.set_bind_group(0, &self.uniform_bind_group, &[]);
             render_pass.draw(0..3, 0..1);
 
-            // 2. Draw Kinetic Typography Overlays
+            // 2. Draw Kinetic Per-Glyph Spring Layer
+            if !instances.is_empty() {
+                render_pass.set_pipeline(&self.kinetics_pipeline);
+                render_pass.set_bind_group(0, &self.kinetics_bind_group, &[]);
+                render_pass.set_bind_group(1, &self.glyph_atlas.bind_group, &[]);
+                render_pass.set_vertex_buffer(0, self.instance_buffer.slice(..byte_len));
+                render_pass.draw(0..6, 0..instances.len() as u32);
+            }
+
+            // 3. Draw Glyphon Typography Overlays
+            let _ = kinetic_alive; // redraws are continuous via about_to_wait
             self.text_renderer
                 .render(&self.text_atlas, &self.viewport, &mut render_pass)
                 .expect("Failed to render text pass");

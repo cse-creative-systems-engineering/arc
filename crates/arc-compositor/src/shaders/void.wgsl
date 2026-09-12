@@ -62,9 +62,9 @@ fn sd_arc_logo(p: vec2<f32>) -> f32 {
     let d_r = min(min(min(min(r_spine, r_top), r_mid), r_loop), r_leg);
 
     // Letter 'C' (centered at x = 0.32)
-    let c_spine  = sd_segment(p, vec2<f32>(0.24, -0.10), vec2<f32>(0.24, 0.10));
-    let c_top    = sd_segment(p, vec2<f32>(0.24, 0.10), vec2<f32>(0.38, 0.10));
-    let c_bottom = sd_segment(p, vec2<f32>(0.24, -0.10), vec2<f32>(0.38, -0.10));
+    let c_spine  = sd_segment(p, vec2<f32>(0.24, -0.12), vec2<f32>(0.24, 0.12));
+    let c_top    = sd_segment(p, vec2<f32>(0.24, 0.12), vec2<f32>(0.38, 0.12));
+    let c_bottom = sd_segment(p, vec2<f32>(0.24, -0.12), vec2<f32>(0.38, -0.12));
     let d_c = min(min(c_spine, c_top), c_bottom);
 
     return min(min(d_a, d_r), d_c);
@@ -78,6 +78,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Normalized aspect-ratio corrected coordinates
     let aspect = uniforms.screen_width / uniforms.screen_height;
     var p = (in.uv - vec2<f32>(0.5, 0.44)) * vec2<f32>(aspect, 1.0);
+    // UV y grows downward; the SDF letterforms are authored y-up.
+    p = vec2<f32>(p.x, -p.y);
 
     // Scale procedural typography to dominant central proportions
     p = p * 1.55;
@@ -85,21 +87,25 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     // Distance to ARC geometry
     let dist = sd_arc_logo(p);
 
-    // Stroke definition with smooth anti-aliased edge
-    let stroke_radius = 0.024;
-    let core = smoothstep(stroke_radius + 0.004, stroke_radius - 0.002, dist);
+    // Hairline stroke — thin, precise, editorial. Narrow AA band keeps the
+    // line crisp at 1px-equivalent weight.
+    let stroke_radius = 0.004;
+    let core = smoothstep(stroke_radius + 0.0015, stroke_radius - 0.0015, dist);
 
-    // Ethereal outer glow / bloom
-    let glow = exp(-dist * 18.0) * 0.45;
+    // Ethereal outer glow / bloom (subtle — the hairline carries the form)
+    let glow = exp(-dist * 60.0) * 0.28;
 
     // Ambient breathing calculation
-    // Peak bloom during boot (0.0 to 2.0s), then settling into a persistent ~5% pulsing watermark
+    // Cinematic entry: 3s of PURE darkness (all luminance gated to zero),
+    // then a very slow ~12s bloom from nothing, a held peak, then a glacial
+    // decay to the breathing watermark.
     let t = uniforms.time;
-    let bloom_in = smoothstep(0.0, 1.6, t);
-    let bloom_decay = smoothstep(3.8, 1.6, t);
+    let darkness = smoothstep(3.0, 3.6, t); // hard 0 until t=3s
+    let bloom_in = smoothstep(3.0, 15.0, t);
+    let bloom_decay = smoothstep(27.0, 15.0, t);
     let boot_peak = bloom_in * bloom_decay * 0.82;
-    let ambient_pulse = (0.045 + 0.02 * sin(t * 1.4)) * uniforms.watermark_opacity;
-    let effective_alpha = max(boot_peak, ambient_pulse);
+    let ambient_pulse = (0.045 + 0.015 * sin(t * 0.35)) * uniforms.watermark_opacity;
+    let effective_alpha = max(boot_peak, ambient_pulse) * darkness;
 
     // Warm titanium white luminance
     let titanium = vec3<f32>(0.92, 0.90, 0.87);

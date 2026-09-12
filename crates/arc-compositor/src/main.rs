@@ -1,4 +1,5 @@
 mod app;
+mod kinetics;
 mod intent;
 mod renderer;
 

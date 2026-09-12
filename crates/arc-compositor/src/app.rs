@@ -71,7 +71,7 @@ impl ApplicationHandler for ArcApp {
 
             WindowEvent::RedrawRequested => {
                 if let Some(renderer) = &mut self.renderer {
-                    let _ = renderer.render(&self.intent);
+                    let _ = renderer.render(&mut self.intent);
                 }
             }
 
