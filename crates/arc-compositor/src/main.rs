@@ -1,5 +1,6 @@
 mod app;
 mod kinetics;
+mod wordmark;
 mod reflex;
 mod intent;
 mod renderer;

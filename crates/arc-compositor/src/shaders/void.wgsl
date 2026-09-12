@@ -32,10 +32,14 @@ fn sd_segment(p: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
     return length(pa - ba * h);
 }
 
-// Distance to circular arc
+// Distance to circular arc. Angles may span the ±π wrap: the given angle is
+// normalized into [a0, a0+2π) before the containment test.
 fn sd_arc(p: vec2<f32>, center: vec2<f32>, radius: f32, a0: f32, a1: f32) -> f32 {
     let d = p - center;
-    let angle = atan2(d.y, d.x);
+    var angle = atan2(d.y, d.x);
+    if (angle < a0) {
+        angle = angle + 6.28318530718;
+    }
     let r_diff = abs(length(d) - radius);
     if (angle >= a0 && angle <= a1) {
         return r_diff;
@@ -45,27 +49,35 @@ fn sd_arc(p: vec2<f32>, center: vec2<f32>, radius: f32, a0: f32, a1: f32) -> f32
     return min(length(p - p0), length(p - p1));
 }
 
-// Procedural Signed Distance Field for monolithic modernist "ARC"
+// Procedural Signed Distance Field for the ARC wordmark.
+// Editorial proportions: cap height y ∈ [-0.14, 0.14], hairline stroke,
+// true circular bowls (no stick-figure segments).
 fn sd_arc_logo(p: vec2<f32>) -> f32 {
-    // Letter 'A' (centered at x = -0.32)
-    let a_left   = sd_segment(p, vec2<f32>(-0.40, -0.12), vec2<f32>(-0.32, 0.12));
-    let a_right  = sd_segment(p, vec2<f32>(-0.32, 0.12), vec2<f32>(-0.24, -0.12));
-    let a_bar    = sd_segment(p, vec2<f32>(-0.37, -0.03), vec2<f32>(-0.27, -0.03));
+    // ── Letter 'A' (apex at x = -0.40) ──
+    // Legs splay elegantly; apex has a tiny flat top for optical crispness.
+    let a_left  = sd_segment(p, vec2<f32>(-0.52, -0.14), vec2<f32>(-0.405, 0.135));
+    let a_right = sd_segment(p, vec2<f32>(-0.405, 0.135), vec2<f32>(-0.29, -0.14));
+    // Crossbar sits slightly low (optically centered), spanning leg to leg.
+    let a_bar   = sd_segment(p, vec2<f32>(-0.474, -0.03), vec2<f32>(-0.326, -0.03));
     let d_a = min(min(a_left, a_right), a_bar);
 
-    // Letter 'R' (centered at x = 0.0)
-    let r_spine  = sd_segment(p, vec2<f32>(-0.08, -0.12), vec2<f32>(-0.08, 0.12));
-    let r_top    = sd_segment(p, vec2<f32>(-0.08, 0.12), vec2<f32>(0.03, 0.12));
-    let r_mid    = sd_segment(p, vec2<f32>(-0.08, 0.01), vec2<f32>(0.03, 0.01));
-    let r_loop   = sd_segment(p, vec2<f32>(0.03, 0.12), vec2<f32>(0.03, 0.01));
-    let r_leg    = sd_segment(p, vec2<f32>(0.0, 0.01), vec2<f32>(0.08, -0.12));
-    let d_r = min(min(min(min(r_spine, r_top), r_mid), r_loop), r_leg);
+    // ── Letter 'R' (spine at x = -0.10, bowl right edge x = 0.16) ──
+    // Spine carries full cap height; bowl is a true semicircle; leg kicks
+    // out from the bowl's lower quadrant.
+    let r_spine = sd_segment(p, vec2<f32>(-0.10, -0.14), vec2<f32>(-0.10, 0.14));
+    let r_top   = sd_segment(p, vec2<f32>(-0.10, 0.14), vec2<f32>(0.02, 0.14));
+    let r_bowl  = sd_arc(p, vec2<f32>(0.02, 0.0), 0.14, -1.5707963, 1.5707963);
+    let r_mid   = sd_segment(p, vec2<f32>(-0.10, 0.0), vec2<f32>(0.09, 0.0));
+    let r_leg   = sd_segment(p, vec2<f32>(0.055, -0.02), vec2<f32>(0.155, -0.14));
+    let d_r = min(min(min(min(r_spine, r_top), r_bowl), r_mid), r_leg);
 
-    // Letter 'C' (centered at x = 0.32)
-    let c_spine  = sd_segment(p, vec2<f32>(0.24, -0.12), vec2<f32>(0.24, 0.12));
-    let c_top    = sd_segment(p, vec2<f32>(0.24, 0.12), vec2<f32>(0.38, 0.12));
-    let c_bottom = sd_segment(p, vec2<f32>(0.24, -0.12), vec2<f32>(0.38, -0.12));
-    let d_c = min(min(c_spine, c_top), c_bottom);
+    // ── Letter 'C' (center (0.36, 0), radius 0.14, opening facing right) ──
+    // A genuine circular arc, tips cut at ±55° with small horizontal
+    // terminals for a modernist finish.
+    let c_body  = sd_arc(p, vec2<f32>(0.36, 0.0), 0.14, 0.9599, 5.3233);
+    let c_tip_t = sd_segment(p, vec2<f32>(0.36 + 0.14 * 0.5736, 0.14 * 0.8192), vec2<f32>(0.36 + 0.14 * 0.5736 - 0.055, 0.14 * 0.8192));
+    let c_tip_b = sd_segment(p, vec2<f32>(0.36 + 0.14 * 0.5736, -0.14 * 0.8192), vec2<f32>(0.36 + 0.14 * 0.5736 - 0.055, -0.14 * 0.8192));
+    let d_c = min(min(c_body, c_tip_t), c_tip_b);
 
     return min(min(d_a, d_r), d_c);
 }

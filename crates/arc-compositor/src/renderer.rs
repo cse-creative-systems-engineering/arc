@@ -9,6 +9,7 @@ use winit::window::Window;
 use crate::intent::IntentManager;
 use crate::kinetics::{build_instances, GlyphAtlas, GlyphInstance, KineticLine};
 use crate::reflex::ReflexEngine;
+use crate::wordmark::{rasterize_wordmark, WatermarkUniforms, WordmarkRaster};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -33,10 +34,13 @@ pub struct CanvasRenderer {
     pub surface: wgpu::Surface<'static>,
     pub config: wgpu::SurfaceConfiguration,
 
-    // Void pipeline
+    // Void + wordmark pipeline (typeface-rasterized ARC, watermark.wgsl)
     void_pipeline: wgpu::RenderPipeline,
     uniform_buffer: wgpu::Buffer,
     uniform_bind_group: wgpu::BindGroup,
+    wordmark: WordmarkRaster,
+    wm_origin: [f32; 2],
+    wm_size: [f32; 2],
 
     // Glyphon text engine
     font_system: FontSystem,
@@ -117,17 +121,43 @@ impl CanvasRenderer {
         };
         surface.configure(&device, &config);
 
+        // --- Text engine first: the wordmark rasterizes from the typeface ---
+        let mut font_system = FontSystem::new();
+        let mut swash_cache = SwashCache::new();
+        let cache = Cache::new(&device);
+        let mut text_atlas = TextAtlas::new(&device, &queue, &cache, surface_format);
+        let text_renderer =
+            TextRenderer::new(&mut text_atlas, &device, wgpu::MultisampleState::default(), None);
+        let viewport = Viewport::new(&device, &cache);
+
+        // ARC wordmark: URW Gothic Book (Futura-lineage geometric sans),
+        // rasterized once at boot. Sized to ~55% of screen width.
+        let wm_px = (height as f32) * 0.42;
+        let wordmark = rasterize_wordmark(
+            &device,
+            &queue,
+            &mut font_system,
+            &mut swash_cache,
+            "ARC",
+            wm_px,
+        );
+        let wm_scale = (width as f32 * 0.55) / wordmark.width.max(1) as f32;
+        let wm_w = wordmark.width as f32 * wm_scale;
+        let wm_h = wordmark.height as f32 * wm_scale;
+        let wm_origin = [(width as f32 - wm_w) * 0.5, (height as f32 - wm_h) * 0.5 - height as f32 * 0.06];
+
         // --- Void Shader Pipeline ---
         let void_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label: Some("Obsidian Void & Watermark Shader"),
-            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/void.wgsl").into()),
+            label: Some("Obsidian Void & Wordmark Shader"),
+            source: wgpu::ShaderSource::Wgsl(include_str!("shaders/watermark.wgsl").into()),
         });
 
-        let initial_uniforms = VoidUniforms {
-            time: 0.0,
-            screen_width: width as f32,
-            screen_height: height as f32,
-            watermark_opacity: 1.0,
+        let initial_uniforms = WatermarkUniforms {
+            origin: wm_origin,
+            size: [wm_w, wm_h],
+            screen: [width as f32, height as f32],
+            alpha: 0.0, // cinematic fade written per-frame
+            _pad: [0.0; 13],
         };
 
         let uniform_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -136,28 +166,64 @@ impl CanvasRenderer {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         });
 
+        let wordmark_view = wordmark.texture.create_view(&Default::default());
+        let wordmark_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            label: Some("Wordmark Sampler"),
+            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
         let uniform_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("Void Bind Group Layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: None,
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT | wgpu::ShaderStages::VERTEX,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
                     },
-                    count: None,
-                }],
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
             });
 
         let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Void Bind Group"),
             layout: &uniform_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: uniform_buffer.as_entire_binding(),
-            }],
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(&wordmark_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Sampler(&wordmark_sampler),
+                },
+            ],
         });
 
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -199,15 +265,6 @@ impl CanvasRenderer {
             multiview_mask: None,
             cache: None,
         });
-
-        // --- Glyphon Text Engine ---
-        let mut font_system = FontSystem::new();
-        let swash_cache = SwashCache::new();
-        let cache = Cache::new(&device);
-        let mut text_atlas = TextAtlas::new(&device, &queue, &cache, surface_format);
-        let text_renderer =
-            TextRenderer::new(&mut text_atlas, &device, wgpu::MultisampleState::default(), None);
-        let viewport = Viewport::new(&device, &cache);
 
         // Text buffers — oversized literary display face for the prompt
         // (architecture §3.1: center third of the viewport), mono for status.
@@ -341,6 +398,9 @@ impl CanvasRenderer {
             void_pipeline,
             uniform_buffer,
             uniform_bind_group,
+            wordmark,
+            wm_origin,
+            wm_size: [wm_w, wm_h],
             font_system,
             swash_cache,
             text_atlas,
@@ -446,12 +506,21 @@ impl CanvasRenderer {
         let width = self.config.width as f32;
         let height = self.config.height as f32;
 
-        // Update void uniforms
-        let uniforms = VoidUniforms {
-            time: elapsed_secs,
-            screen_width: width,
-            screen_height: height,
-            watermark_opacity: 1.0,
+        // Cinematic wordmark fade: 3s darkness, 12s bloom, glacial settle.
+        let t = elapsed_secs;
+        let darkness = smoothstep_01((t - 3.0) / 0.6);
+        let bloom_in = smoothstep_01((t - 3.0) / 12.0);
+        let bloom_decay = smoothstep_01((27.0 - t) / 12.0);
+        let boot_peak = bloom_in * bloom_decay * 0.82;
+        let ambient_pulse = 0.045 + 0.015 * (t * 0.35).sin();
+        let wm_alpha = (boot_peak.max(ambient_pulse) * darkness).clamp(0.0, 1.0);
+
+        let uniforms = WatermarkUniforms {
+            origin: self.wm_origin,
+            size: self.wm_size,
+            screen: [width as f32, height as f32],
+            alpha: wm_alpha,
+            _pad: [0.0; 13],
         };
         self.queue
             .write_buffer(&self.uniform_buffer, 0, bytemuck::cast_slice(&[uniforms]));
@@ -606,4 +675,10 @@ impl CanvasRenderer {
 
         Ok(())
     }
+}
+
+
+fn smoothstep_01(x: f32) -> f32 {
+    let x = x.clamp(0.0, 1.0);
+    x * x * (3.0 - 2.0 * x)
 }
