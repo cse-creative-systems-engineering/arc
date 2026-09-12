@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "crates/arc-compositor",
+    "crates/arc-engine-supervisor",
 ]
 resolver = "2"
 
